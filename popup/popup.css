@@ -1,0 +1,15 @@
+ul.pn-prize{
+    list-style-type: none;
+    padding: 0px 0px;
+}
+.pn-prize {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    column-gap: 5px;
+}
+
+.grid-item-price {
+    grid-column: 3/span 2;
+    width: auto;
+    text-align: right;
+}

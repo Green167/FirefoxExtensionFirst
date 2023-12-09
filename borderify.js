@@ -1,15 +1,5 @@
 document.body.style.border = "5px solid blue";
 
-var slotFights = 0;
-
-var slotPrizes = [
-    ['S-Rank Secret Technique Scroll', 0],
-    ['C-Rank Secret Technique Scroll', 0],
-    ['B-Rank Secret Technique Scroll', 0],
-    ['A-Rank Secret Technique Scroll', 0],
-    ['Hand Grenade', 0]
-];
-
 let observedGame = null;
 let observedFight = null;
 
@@ -18,6 +8,9 @@ const observerConfig = { attributes: true, childList: true, subtree: true };
 var LETSFIGHT = false;
 var whatsGoingOn = '';
 var prizedRecorded = false;
+var fightsSiceLastReload = 14;
+var tabId = null;
+
 const callback = (mutationList, observer) => {
     const panels = document.getElementsByClassName('panel__name');
     const combatResult = [...panels].filter(a => a.textContent.includes('Combat Results'));
@@ -28,7 +21,7 @@ const callback = (mutationList, observer) => {
     if (fighting.length > 0) {
         if (combatResult.length > 0) {
             if (prizedRecorded === true) {
-                return false;
+                return;
             }
             whatsGoingOn = 'Combat End!';
             LETSFIGHT = false;
@@ -36,22 +29,38 @@ const callback = (mutationList, observer) => {
             const closeBtn = combatResultBtns.filter(b => b.textContent.includes('Close'));
             if (closeBtn.length > 0) {
                 prizedRecorded = true;
-                let returnedPrizes = '';
-
-                setTimeout(function () {
+                setTimeout(async function () {
+                    let returnedPrizes = '';
                     const prizeElements = [...document.querySelectorAll('#fightContainer .panel > .j-panel .j-panel pre')];
 
                     prizeElements.map(p => returnedPrizes += ` ${p.textContent}`);
-                    slotFights++;
-                    slotPrizes.forEach(prize => {
+
+                    let summary = await browser.storage.local.get(['pnSlotFight', 'pnSlotPrizes']);
+
+                    if (Object.keys(summary).length === 0) {
+                        summary = {
+                            pnSlotFight: 0,
+                            pnSlotPrizes: [
+                                ['S-Rank Secret Technique Scroll', 0],
+                                ['C-Rank Secret Technique Scroll', 0],
+                                ['B-Rank Secret Technique Scroll', 0],
+                                ['A-Rank Secret Technique Scroll', 0],
+                                ['Hand Grenade', 0]
+                            ]
+                        }
+                    }
+
+                    summary.pnSlotFight += 1;
+                    summary.pnSlotPrizes.forEach(prize => {
                         if (returnedPrizes.includes(prize[0])) {
                             prize[1]++;
                         }
                     });
 
+                    fightsSiceLastReload--;
+                    browser.storage.local.set(summary);
+
                     closeBtn[0].click();
-                    //console.log(slotFights);
-                    //console.log(slotPrizes);
                 }, 3500);
             }
         } else {
@@ -63,7 +72,11 @@ const callback = (mutationList, observer) => {
         if (LETSFIGHT === false) {
             LETSFIGHT = true;
             setTimeout(() => {
-                slotMachineChallenge[0].click();
+                if (fightsSiceLastReload <= 0) {
+                    location.reload(true);
+                } else {
+                    slotMachineChallenge[0].click();
+                }
             }, 1500)
         }
     }
@@ -78,12 +91,18 @@ const observer = new MutationObserver(callback);
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'STOP') {
         observer.disconnect();
+        browser.storage.local.set({
+            autoslot: false
+        });
     } else if (request.type === 'START') {
         startObserve();
+        browser.storage.local.set({
+            autoslot: true
+        });
+    } else if (request.type === 'RELOAD') {
+        location.reload(true);
     }
-    sendResponse({ response: [slotFights, slotPrizes] })
 });
-
 
 function startObserve() {
     observedGame ??= document.getElementById("game-container");
@@ -97,3 +116,36 @@ function startObserve() {
 //    //await console.log(browser.tabs.query({ active: true, currentWindow: true }));
 //}
 //print();
+
+async function getAutoStartStatus() {
+    const autoSlot = await browser.storage.local.get('autoslot');
+    return Object.keys(autoSlot).length > 0 ? autoSlot.autoslot : false;
+}
+
+function openSlotMachine() {
+    const slotMachine = document.getElementsByClassName('slot-machine__container');
+    console.log(slotMachine.length)
+    if (slotMachine.length > 0) {
+        return;
+    }
+
+    const slotIcon = document.getElementsByClassName('slot-machine__icon');
+    if (slotIcon.length > 0) {
+        const slotIconBtn = slotIcon[0].querySelector('img');
+        if (slotIconBtn) {
+            slotIconBtn.click();
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', (e) => {
+    setTimeout(async () => {
+        const autoSlot = await getAutoStartStatus();
+        //console.log(autoSlot);
+        if (autoSlot) {
+            startObserve();
+            browser.runtime.sendMessage({ type: 'STARTOVER' })
+            //console.log('asdsfsdf');
+        }
+    }, 4000);
+})

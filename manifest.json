@@ -28,6 +28,12 @@
     "default_popup": "./popup/popup.html"
   },
   "permissions": [
-    "tabs"
-  ]
+    "tabs",
+    "storage",
+    "notifications",
+    "webNavigation"
+  ],
+  "background": {
+    "scripts": [ "background.js" ]
+  }
 }
