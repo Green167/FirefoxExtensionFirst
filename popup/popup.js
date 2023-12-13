@@ -48,6 +48,13 @@ const onReloadPage = async e => {
     const sending = await browser.tabs.sendMessage(tab.id, { type: 'RELOAD' });
 }
 
+const onFightArena = async e => {
+    const tab = await getPNTab();
+    const fighterNumber = document.getElementsByName('fighterNumber')[0].value;
+    console.log(fighterNumber)
+    const sending = await browser.tabs.sendMessage(tab.id, { type: 'FIGHT_ARENA', fighter: fighterNumber });
+}
+
 const stopBtn = document.getElementsByClassName('stop-observer');
 stopBtn[0].addEventListener('click', onStopObserver);
 
@@ -60,10 +67,15 @@ resetBtn[0].addEventListener('click', onResetStorage);
 const reloadBtn = document.getElementsByClassName('reload-page');
 reloadBtn[0].addEventListener('click', onReloadPage);
 
+const fightArenaBtn = document.getElementsByClassName('fight-arena');
+fightArenaBtn[0].addEventListener('click', onFightArena);
+
 async function getPnSummary() {
     //await browser.storage.local.clear();
     const summary = await browser.storage.local.get(['pnSlotFight', 'pnSlotPrizes']);
-
+    if (Object.keys(summary).length === 0) {
+        return;
+    }
     let prizeHTML = '';
     summary.pnSlotPrizes.forEach((p) => {
         prizeHTML += `<li>${p[0]}</li><li>x</li><li class="grid-item-price">${p[1]}</li>`;
