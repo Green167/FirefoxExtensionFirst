@@ -8,8 +8,8 @@ const observerConfig = { attributes: true, childList: true, subtree: true };
 var LETSFIGHT = false;
 var whatsGoingOn = '';
 var prizedRecorded = false;
-var fightsSiceLastReload = 7;
-var arenaTicketMin = 5;
+var fightsSiceLastReload = 14;
+var arenaTicketMin = 2;
 var tabId = null;
 var isFighting = false;
 var fighterToAuto = 17;
@@ -176,8 +176,9 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.type === 'RELOAD') {
         location.reload(true);
     } else if (request.type === 'FIGHT_ARENA') {
+        console.log(request.fighter)
         if (!isNaN(request.fighter)) {
-            fighterToAuto = request.fighter;
+            //fighterToAuto = request.fighter;
         }
         browser.storage.local.set({
             autoarena: true
@@ -194,10 +195,12 @@ function battleArena(battleImg) {
 function chooseFighter() {
     const fighters = document.getElementsByClassName('arena-fighter');
     if (fighters.length > 0) {
-        const lastFighter = fighters[fighterToAuto];
-        console.log(fighterToAuto)
-        if (!lastFighter.classList.contains('defeated')) {
-            lastFighter.click();
+        for (var i = fighterToAuto; i >= 0; i--) {
+            let lastFighter = fighters[i];
+            if (!lastFighter.classList.contains('defeated')) {
+                lastFighter.click();
+                break;
+            }
         }
     }
 }
